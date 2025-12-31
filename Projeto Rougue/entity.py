@@ -24,7 +24,8 @@ class Projectile:
         self.color = color
 
     def update(self):
-        self.index += 1
+        if self.index < len(self.path) - 1:
+            self.index += 1
 
     @property
     def x(self):

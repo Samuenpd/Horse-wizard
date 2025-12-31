@@ -1,3 +1,4 @@
+from importlib.resources import path
 import tcod
 from entity import Projectile
 
@@ -15,9 +16,15 @@ class Spell:
 
 class MagicMissile(Spell):
     def __init__(self):
-        super().__init__("Magic Missile", 8, 6)
+        super().__init__(name="Magic Missile", range=8, damage=6)
 
     def cast(self, engine, caster, target_x, target_y):
+        if target_x is None or target_y is None:
+            return
+
+        target_x = int(target_x)
+        target_y = int(target_y)
+
         path = tcod.los.bresenham(
             (caster.x, caster.y),
             (target_x, target_y)

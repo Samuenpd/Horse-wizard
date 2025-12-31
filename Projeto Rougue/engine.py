@@ -34,7 +34,7 @@ class Engine:
 
         self.targeting = False
         self.target_spell = None
-        self.mouse_position = (0, 0)
+        self.mouse_position = (self.player.x, self.player.y)
 
     def run(self, context):
         self.context = context
@@ -44,13 +44,12 @@ class Engine:
             self.render()
 
     def handle_events(self):
-        for event in tcod.event.get():
+        for event in tcod.event.wait():
             if event.type == "QUIT":
                 raise SystemExit()
-            
-            # Converter evento para ter tile coordinates corretas
-            event = self.context.convert_event(event)
-            
+
+            self.context.convert_event(event)
+
             action = handle_event(event)
             if action:
                 self.process_action(action)
@@ -73,8 +72,9 @@ class Engine:
             self.targeting = True
             self.target_spell = self.spells[action["spell"]]
 
-        elif t == "mouse_move":
-            self.mouse_position = (action["x"], action["y"])
+        elif t == "mouse_move" and self.targeting:
+            if action["x"] is not None and action["y"] is not None:
+                self.mouse_position = (int(action["x"]), int(action["y"]))
 
         elif t == "mouse_click" and self.targeting:
             x, y = action["x"], action["y"]
@@ -108,14 +108,14 @@ class Engine:
 
         if self.targeting:
             mx, my = self.mouse_position
-            
-            path = tcod.los.bresenham(
-                (self.player.x, self.player.y),
-                (mx, my)
-            ).tolist()
 
-            for x, y in path:
-                self.console.print(x, y, "*", fg=(0, 255, 255))
+            if mx is not None and my is not None:
+                path = tcod.los.bresenham(
+                    (self.player.x, self.player.y),
+                    (mx, my)
+                ).tolist()
+                for x, y in path:
+                    self.console.print(x, y, "*", fg=(0, 255, 255))
         
         for p in self.projectiles:
             self.console.print(p.x, p.y, p.glyph, fg=p.color)
@@ -129,13 +129,18 @@ class Engine:
         for p in self.projectiles[:]:
             p.update()
 
-            if p.finished():
-                x, y = p.x, p.y
-                target = self.get_blocking_entity(x, y)
+            x, y = p.x, p.y
 
-                if target and target.fighter:
-                    dead = target.fighter.take_damage(p.damage)
-                    if dead:
+            target = self.get_blocking_entity(x, y)
+            if target and target.fighter:
+                dead = target.fighter.take_damage(p.damage)
+                if dead:
+                    if target in self.entities:
                         self.entities.remove(target)
+                if p in self.projectiles:
+                    self.projectiles.remove(p)
+                continue
 
-                self.projectiles.remove(p)
+            if p.finished():
+                if p in self.projectiles:
+                    self.projectiles.remove(p)
