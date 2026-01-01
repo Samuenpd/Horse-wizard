@@ -9,17 +9,11 @@ class Entity:
         self.color = color
         self.is_player = is_player
 
+        self.fighter = Fighter(hp=10, power=3)
 
-        # combate
-        self.fighter = Fighter(
-            hp=10,
-            power=3,
-        )
-
-        # magia só pro jogador
         if is_player:
-            self.mana = 10
             self.max_mana = 10
+            self.mana = 10
             self.spellbook = Spellbook(self)
         else:
             self.spellbook = None

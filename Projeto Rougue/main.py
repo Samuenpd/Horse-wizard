@@ -34,6 +34,7 @@ def main():
             y=screen_height // 2,
             glyph="@",
             color=(255, 255, 255),
+            is_player=True,
         )
 
         player.spellbook = Spellbook(player)
