@@ -2,7 +2,6 @@ from typing import Dict
 
 
 def bresenham_line(x0, y0, x1, y1):
-    """Generate a line of coordinates from (x0, y0) to (x1, y1) using Bresenham's algorithm."""
     points = []
     dx = abs(x1 - x0)
     dy = abs(y1 - y0)
@@ -76,10 +75,10 @@ class Heal(Spell):
         )
 
     def cast(self, caster, engine, x=None, y=None):
-        caster.hp += 5
-
-
-
+        caster.fighter.hp = min(
+            caster.fighter.max_hp,
+            caster.fighter.hp + 5
+        )
 
 class SpellLibrary:
     def __init__(self):
@@ -104,17 +103,19 @@ class Spellbook:
         self.known = {}
         self.known_list = []  # Keep order of spells
         self.active_spell = None
+        self.selected_index = 0
 
     def learn(self, spell: Spell):
         self.known[spell.id] = spell
         self.known_list.append(spell)
 
     def select(self, spell_index: int):
-        if spell_index >= len(self.known_list):
+        if spell_index < 0 or spell_index >= len(self.known_list):
             return None
-        spell = self.known_list[spell_index]
-        self.active_spell = spell
-        return spell
+
+        self.selected_index = spell_index
+        self.active_spell = self.known_list[spell_index]
+        return self.active_spell
 
     def cast_active(self, engine, x=None, y=None):
         if not self.active_spell:

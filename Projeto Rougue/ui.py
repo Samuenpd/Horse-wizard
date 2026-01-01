@@ -4,87 +4,87 @@ class UIPanel:
         self.width = width
         self.height = height
 
-    def render_bar(
-        self,
-        console,
-        x,
-        y,
-        width,
-        current,
-        maximum,
-        name,
-        bar_color,
-        back_color,
-    ):
-        if maximum <= 0:
-            return
-
-        ratio = current / maximum
-        fill_width = int(width * ratio)
-
-        # fundo
-        console.draw_rect(
-            x=x,
-            y=y,
-            width=width,
-            height=1,
-            ch=0,
-            bg=back_color,
-        )
-
-        # barra cheia
-        if fill_width > 0:
-            console.draw_rect(
-                x=x,
-                y=y,
-                width=fill_width,
-                height=1,
-                ch=0,
-                bg=bar_color,
-            )
-
-        console.print(
-            x + 1,
-            y,
-            f"{name}: {current}/{maximum}",
-            fg=(255, 255, 255),
-        )
-
-    def render(self, console, player, state):
+    def render(self, console, player, engine):
         console.draw_frame(
-        x=self.x,
-        y=0,
-        width=self.width,
-        height=self.height,
-        title="PLAYER",
+            x=self.x,
+            y=0,
+            width=self.width,
+            height=self.height,
+            title="PLAYER",
         )
 
         y = 2
 
-        # HP
-        self.render_bar(
-            console,
+        console.print(
             self.x + 1,
             y,
-            self.width - 2,
-            player.fighter.hp,
-            player.fighter.max_hp,
-            "HP",
-            bar_color=(200, 0, 0),
-            back_color=(60, 0, 0),
+            "HP:",
+            fg=(255, 0, 0),
         )
-        y += 2
+        console.print(
+            self.x + 5,
+            y,
+            f"{player.fighter.hp} / {player.fighter.max_hp}",
+            fg=(255, 255, 255),
+        )
+        y += 1
 
-        # MANA (só se existir)
         if hasattr(player, "mana"):
-            self.render_bar(
-                console,
+            console.print(
                 self.x + 1,
                 y,
-                self.width - 2,
-                player.mana,
-                player.max_mana,
-                "MANA",
-                bar_color=(0, 0, 200),
-                back_color=(0, 0, 60),
+                "MANA:",
+                fg=(0, 0, 255),
             )
+            console.print(
+                self.x + 5,
+                y,
+                f"{player.mana} / {player.max_mana}",
+                fg=(255, 255, 255),
+            )
+            y += 2
+        else:
+            y += 1
+
+        spell = player.spellbook.active_spell
+
+        console.print(
+            self.x + 1,
+            y,
+            "MAGIA:",
+            fg=(255, 255, 0),
+        )
+        y += 1
+
+        if spell:
+            console.print(
+                self.x + 1,
+                y,
+                spell.name,
+                fg=(255, 255, 255),
+            )
+        else:
+            console.print(
+                self.x + 1,
+                y,
+                "Nenhuma",
+                fg=(120, 120, 120),
+            )
+        y += 2
+
+        spellbook = player.spellbook
+
+        for i, s in enumerate(spellbook.known_list):
+            prefix = ">" if i == spellbook.selected_index else " "
+            color = (255, 255, 255)
+
+            if i == spellbook.selected_index:
+                color = (255, 255, 0)
+
+            console.print(
+                self.x + 1,
+                y,
+                f"{prefix} {i + 1}. {s.name}",
+                fg=color,
+            )
+            y += 1

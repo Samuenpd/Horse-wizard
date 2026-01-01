@@ -127,24 +127,13 @@ class Engine:
                     if hasattr(entity, "fighter") and entity.fighter.hp <= 0:
                         self.entities.remove(entity)
 
-            case "open_spell_menu":
-                if self.state == GameState.PLAYING:
-                    self.state = GameState.SPELL_MENU
-
             case "select_spell":
-                if self.state != GameState.SPELL_MENU:
-                    return
-
                 spell = self.player.spellbook.select(action["spell_id"])
-
                 if spell and spell.requires_target:
                     self.state = GameState.TARGETING
-                    self.target_x = self.player.x
-                    self.target_y = self.player.y
-                elif spell:
-                    self.player.spellbook.cast_active(self)
-                    self.state = GameState.PLAYING
-
+                else:
+                    self.state = GameState.PLAYING  
+                    
             case "confirm_target":
                 if self.state != GameState.TARGETING:
                     return
@@ -218,18 +207,5 @@ class Engine:
                 fg=(255, 0, 0),
             )
 
-        # ===== SPELL MENU =====
-        if self.state == GameState.SPELL_MENU:
-            self.render_spell_menu()
-
         self.context.present(self.console)
 
-    def render_spell_menu(self):
-        x, y = 2, 2
-        for i, spell in enumerate(self.player.spellbook.known_list):
-            self.console.print(
-                x,
-                y + i,
-                f"{i + 1} - {spell.name} ({spell.cost})",
-                fg=(255, 255, 255),
-            )
