@@ -1,6 +1,8 @@
 import tcod
 import tcod.event
 from enum import Enum, auto
+import ai
+import entity
 from input_handlers import handle_event
 
 
@@ -51,13 +53,29 @@ class Engine:
                 if action:
                     self.process_action(action)
 
-            # Update projectiles
+        # Update dos projetils
             for projectile in self.projectiles[:]:
                 projectile.update()
-                if projectile.finished():
+                px, py = projectile.x, projectile.y
+
+                hit_entity = None
+                for entity in self.entities:
+                    if entity.x == px and entity.y == py and hasattr(entity, "fighter"):
+                        if entity.fighter:
+                            entity.fighter.take_damage(projectile.damage)
+
+                            if entity.fighter.hp <= 0:
+                                hit_entity = entity
+
+                            break  
+
+                if hit_entity:
+                    self.entities.remove(hit_entity)
+
+                if hit_entity or projectile.finished():
                     self.projectiles.remove(projectile)
 
-    # ================= ACTIONS =================
+# ================= ACTIONS =================
 
     def process_action(self, action):
         match action["type"]:
@@ -66,7 +84,38 @@ class Engine:
                     action["dx"],
                     action["dy"],
                     self.game_map,
+                    self.entities,
                 )
+
+                # ===== TURNO DOS INIMIGOS =====
+                for entity in self.entities:
+                    if entity is self.player:
+                        continue
+
+                    if not hasattr(entity, "fighter"):
+                        continue
+
+                    # inimigo com delay
+                    if hasattr(entity, "turn_delay"):
+                        entity.turn_counter += 1
+
+                        if entity.turn_counter < entity.turn_delay:
+                            continue
+
+                        entity.turn_counter = 0
+
+                    ai.move_towards(
+                        entity,
+                        self.player.x,
+                        self.player.y,
+                        self.game_map,
+                        self.entities,
+                    )
+
+                # remove mortos
+                for entity in self.entities[:]:
+                    if hasattr(entity, "fighter") and entity.fighter.hp <= 0:
+                        self.entities.remove(entity)
 
             case "open_spell_menu":
                 if self.state == GameState.PLAYING:
@@ -151,7 +200,7 @@ class Engine:
     def render_spell_menu(self):
         x, y = 2, 2
 
-        for i, spell in enumerate(self.player.spellbook.known.values()):
+        for i, spell in enumerate(self.player.spellbook.known_list):
             self.console.print(
                 x,
                 y + i,

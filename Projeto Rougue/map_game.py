@@ -46,3 +46,6 @@ class GameMap:
 						string="#",
 						fg=(120, 120, 120)
 					)
+
+	def in_bounds(self, x: int, y: int) -> bool:
+		return 0 <= x < self.width and 0 <= y < self.height
