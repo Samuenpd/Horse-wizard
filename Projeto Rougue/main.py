@@ -6,6 +6,8 @@ from map_game import GameMap
 from components.spells import SpellLibrary, Firebolt, Heal
 from components.spells import Spellbook, SpellLibrary
 
+
+
 def main():
     screen_width = 80
     screen_height = 50
@@ -35,12 +37,11 @@ def main():
             color=(255, 255, 255),
         )
 
-        player.spellbook = Spellbook()
+        player.spellbook = Spellbook(player)
 
-        player.spellbook.learn(spell_library.spells["firebolt"])
-        player.spellbook.learn(spell_library.spells["heal"])
+        player.spellbook.learn(Firebolt())
+        player.spellbook.learn(Heal())
 
-        player.spellbook.set_active("firebolt")
 
         entities = [player]
 
@@ -51,6 +52,7 @@ def main():
             context=context,
             console=console,
         )
+
         engine.run()
 
 

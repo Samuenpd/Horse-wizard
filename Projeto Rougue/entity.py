@@ -12,7 +12,7 @@ class Entity:
         self.mana = 100
 
         self.is_player = is_player
-        self.spellbook = Spellbook()
+        self.spellbook = Spellbook(self)
 
     def move(self, dx, dy, game_map):
         nx = self.x + dx

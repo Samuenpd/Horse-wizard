@@ -1,105 +1,152 @@
 import tcod
 import tcod.event
+from enum import Enum, auto
+from input_handlers import handle_event
 
-from input_handlers import handle_playing, handle_targeting
 
-
-class GameState:
-	PLAYING = 1
-	MENU = 2
-	TARGETING = 3
+class GameState(Enum):
+    PLAYING = auto()
+    SPELL_MENU = auto()
+    TARGETING = auto()
 
 
 class Engine:
-	def __init__(self, *, entities, game_map, player, context, console):
-		self.entities = entities
-		self.game_map = game_map
-		self.player = player
-		self.context = context
-		self.console = console
+    def __init__(
+        self,
+        *,
+        entities,
+        game_map,
+        player,
+        context,
+        console,
+    ):
+        self.entities = entities
+        self.game_map = game_map
+        self.player = player
+        self.context = context
+        self.console = console
 
-		self.state = GameState.PLAYING
-		self.running = True
+        self.state = GameState.PLAYING
+        self.running = True
 
-		self.target_x = player.x
-		self.target_y = player.y
+        self.target_x = player.x
+        self.target_y = player.y
+        self.projectiles = []
 
-	def run(self):
-		while self.running:
-			self.render()
+    # ================= MAIN LOOP =================
 
-			for event in tcod.event.wait():
-				self.context.convert_event(event)
+    def run(self):
+        while self.running:
+            self.render()
 
-				if isinstance(event, tcod.event.Quit):
-					self.running = False
-					return
+            for event in tcod.event.wait():
+                self.context.convert_event(event)
 
-				self.handle_event(event)
+                if isinstance(event, tcod.event.Quit):
+                    self.running = False
+                    return
 
-	def handle_event(self, event):
-		if self.state == GameState.PLAYING:
-			action = handle_playing(event)
+                action = handle_event(event)
 
-		elif self.state == GameState.TARGETING:
-			action = handle_targeting(event)
+                if action:
+                    self.process_action(action)
 
-		else:
-			action = None
+            # Update projectiles
+            for projectile in self.projectiles[:]:
+                projectile.update()
+                if projectile.finished():
+                    self.projectiles.remove(projectile)
 
-		if action:
-			self.process_action(action)
+    # ================= ACTIONS =================
 
-	def process_action(self, action):
-		kind = action[0]
+    def process_action(self, action):
+        match action["type"]:
+            case "move":
+                self.player.move(
+                    action["dx"],
+                    action["dy"],
+                    self.game_map,
+                )
 
-		if kind == "move":
-			_, dx, dy = action
-			self.player.move(dx, dy, self.game_map)
+            case "open_spell_menu":
+                self.state = GameState.SPELL_MENU
 
-		elif kind == "target":
-			self.state = GameState.TARGETING
-			self.target_x = self.player.x
-			self.target_y = self.player.y
+            case "select_spell":
+                spell = self.player.spellbook.select(
+                    action["spell_id"],
+                )
 
-		elif kind == "aim":
-			_, x, y = action
-			self.target_x = x
-			self.target_y = y
+                if spell and spell.requires_target:
+                    self.state = GameState.TARGETING
+                    self.target_x = self.player.x
+                    self.target_y = self.player.y
+                elif spell:
+                    self.player.spellbook.cast_active(self)
+                    self.state = GameState.PLAYING
 
-		elif kind == "cast":
-			self.player.spellbook.cast_active(
-				self,
-				self.target_x,
-				self.target_y
-			)
-			self.state = GameState.PLAYING
+            case "confirm_target":
+                self.player.spellbook.cast_active(
+                    self,
+                    self.target_x,
+                    self.target_y,
+                )
+                self.state = GameState.PLAYING
 
-		elif kind == "cancel":
-			self.state = GameState.PLAYING
+            case "cancel":
+                self.player.spellbook.active_spell = None
+                self.state = GameState.PLAYING
 
-		elif kind == "quit":
-			self.running = False
+            case "mouse_move":
+                if self.state == GameState.TARGETING:
+                    self.target_x = action["x"]
+                    self.target_y = action["y"]
 
-	def render(self):
-		self.console.clear()
+            case "quit":
+                self.running = False
 
-		self.game_map.render(self.console)
+    # ================= RENDER =================
 
-		for entity in self.entities:
-			self.console.print(
-				entity.x,
-				entity.y,
-				entity.glyph,
-				fg=entity.color
-			)
+    def render(self):
+        self.console.clear()
+        self.game_map.render(self.console)
 
-		if self.state == GameState.TARGETING:
-			self.console.print(
-				self.target_x,
-				self.target_y,
-				"X",
-				fg=(255, 0, 0)
-			)
+        for entity in self.entities:
+            self.console.print(
+                entity.x,
+                entity.y,
+                entity.glyph,
+                fg=entity.color,
+            )
 
-		self.context.present(self.console)
+        # Render projectiles
+        for projectile in self.projectiles:
+            self.console.print(
+                projectile.x,
+                projectile.y,
+                projectile.glyph,
+                fg=projectile.color,
+            )
+
+        if self.state == GameState.TARGETING:
+            if self.target_x is not None and self.target_y is not None:
+                self.console.print(
+                    int(self.target_x),
+                    int(self.target_y),
+                    "X",
+                    fg=(255, 0, 0),
+                )
+
+        if self.state == GameState.SPELL_MENU:
+            self.render_spell_menu()
+
+        self.context.present(self.console)
+
+    def render_spell_menu(self):
+        x, y = 2, 2
+
+        for i, spell in enumerate(self.player.spellbook.known.values()):
+            self.console.print(
+                x,
+                y + i,
+                f"{i + 1} - {spell.name} ({spell.cost})",
+            )
