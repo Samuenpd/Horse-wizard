@@ -39,10 +39,14 @@ class Projectile:
 
     @property
     def x(self):
+        if not self.path:
+            return None
         return self.path[self.index][0]
 
     @property
     def y(self):
+        if not self.path:
+            return None
         return self.path[self.index][1]
 
     def finished(self):

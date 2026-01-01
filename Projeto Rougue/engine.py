@@ -39,7 +39,7 @@ class Engine:
         while self.running:
             self.render()
 
-            for event in tcod.event.wait():
+            for event in tcod.event.get():
                 self.context.convert_event(event)
 
                 if isinstance(event, tcod.event.Quit):
@@ -69,13 +69,14 @@ class Engine:
                 )
 
             case "open_spell_menu":
-                self.state = GameState.SPELL_MENU
+                if self.state == GameState.PLAYING:
+                    self.state = GameState.SPELL_MENU
 
             case "select_spell":
-                spell = self.player.spellbook.select(
-                    action["spell_id"],
-                )
+                if self.state != GameState.SPELL_MENU:
+                    return  # ignora se não estiver no menu
 
+                spell = self.player.spellbook.select(action["spell_id"])
                 if spell and spell.requires_target:
                     self.state = GameState.TARGETING
                     self.target_x = self.player.x
@@ -85,10 +86,13 @@ class Engine:
                     self.state = GameState.PLAYING
 
             case "confirm_target":
+                if self.state != GameState.TARGETING:
+                    return
+
                 self.player.spellbook.cast_active(
-                    self,
-                    self.target_x,
-                    self.target_y,
+                self,
+                    int(self.target_x),
+                    int(self.target_y),
                 )
                 self.state = GameState.PLAYING
 
@@ -120,6 +124,9 @@ class Engine:
 
         # Render projectiles
         for projectile in self.projectiles:
+            if projectile.x is None or projectile.y is None:
+                continue
+
             self.console.print(
                 projectile.x,
                 projectile.y,
