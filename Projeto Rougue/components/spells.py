@@ -1,38 +1,66 @@
-from importlib.resources import path
-import tcod
-from entity import Projectile
+from typing import Dict
 
 
 class Spell:
-    def __init__(self, name, range, damage, radius=0):
+    def __init__(self, name: str, cost: int):
         self.name = name
-        self.range = range
-        self.damage = damage
-        self.radius = radius
+        self.cost = cost
 
-    def cast(self, engine, caster, target_x, target_y):
+    def cast(self, caster, engine, x=None, y=None):
         raise NotImplementedError()
 
 
-class MagicMissile(Spell):
+class Firebolt(Spell):
     def __init__(self):
-        super().__init__(name="Magic Missile", range=8, damage=6)
+        super().__init__("firebolt", cost=2)
 
-    def cast(self, engine, caster, target_x, target_y):
-        if target_x is None or target_y is None:
-            return
+    def cast(self, caster, engine, x, y):
+        for entity in engine.entities:
+            if entity.x == x and entity.y == y:
+                if hasattr(entity, "hp"):
+                    entity.hp -= 5
 
-        target_x = int(target_x)
-        target_y = int(target_y)
 
-        path = tcod.los.bresenham(
-            (caster.x, caster.y),
-            (target_x, target_y)
-        ).tolist()
+class Heal(Spell):
+    def __init__(self):
+        super().__init__("heal", cost=3)
 
-        if len(path) <= 1:
-            return
+    def cast(self, caster, engine, x=None, y=None):
+        if hasattr(caster, "hp"):
+            caster.hp += 5
 
-        engine.projectiles.append(
-            Projectile(path, self.damage)
-        )
+
+class SpellLibrary:
+    def __init__(self):
+        self.spells: Dict[str, Spell] = {}
+
+    def register(self, spell: Spell):
+        self.spells[spell.name] = spell
+
+    def get(self, name: str):
+        return self.spells.get(name)
+
+
+def default_spell_library() -> SpellLibrary:
+    lib = SpellLibrary()
+    lib.register(Firebolt())
+    lib.register(Heal())
+    return lib
+
+class Spellbook:
+    def __init__(self):
+        self.known_spells: list[str] = []
+        self.slots: dict[int, str | None] = {
+            1: None,
+            2: None,
+            3: None,
+            4: None,
+        }
+
+    def learn(self, spell_name: str):
+        if spell_name not in self.known_spells:
+            self.known_spells.append(spell_name)
+
+    def equip(self, slot: int, spell_name: str):
+        if spell_name in self.known_spells:
+            self.slots[slot] = spell_name

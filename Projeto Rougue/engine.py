@@ -1,146 +1,131 @@
-import tcod
 import tcod.event
+from game_state import GameState
+from enum import Enum
 
-from entity import Entity
-from input_handlers import handle_event
-from components.fighter import Fighter
-from components.spells import MagicMissile
+class GameState(Enum):
+    PLAYING = 1
+    SPELL_MENU = 2
+    TARGETING = 3
 
 
 class Engine:
-    def __init__(self, console):
-        self.console = console
-        self.context = None
-        self.entities = []
-        self.projectiles = []
-
-        self.player = Entity(
-            40, 22, "@", (255, 255, 255), "Player",
-            blocks=True,
-            fighter=Fighter(30, 5)
-        )
-        self.entities.append(self.player)
-
-        orc = Entity(
-            45, 22, "C", (255, 0, 0), "Cavalo",
-            blocks=True,
-            fighter=Fighter(10, 3)
-        )
-        self.entities.append(orc)
-
-        self.spells = {
-            "magic_missile": MagicMissile()
-        }
-
-        self.targeting = False
-        self.target_spell = None
-        self.mouse_position = (self.player.x, self.player.y)
-
-    def run(self, context):
+    def __init__(self, entities, game_map, context, console, spell_library):
+        self.entities = entities
+        self.player = entities[0]
+        self.game_map = game_map
         self.context = context
-        while True:
-            self.handle_events()
-            self.update()
-            self.render()
+        self.console = console
+        self.spell_library = spell_library
 
-    def handle_events(self):
-        for event in tcod.event.wait():
-            if event.type == "QUIT":
-                raise SystemExit()
+        self.state = GameState.PLAYING
 
-            self.context.convert_event(event)
+        # dados da mira
+        self.target_x = 0
+        self.target_y = 0
+        self.target_spell = None
 
-            action = handle_event(event)
-            if action:
-                self.process_action(action)
+    # === MÉTODO ISOLADO DA MIRA ===
+    def start_targeting(self, spell_name: str):
+        self.state = GameState.TARGETING
+        self.target_spell = spell_name
+        self.target_x = self.player.x
+        self.target_y = self.player.y
+
+    def finish_targeting(self):
+        from actions import CastSpellAction
+
+        action = CastSpellAction(
+            self.player,
+            self.target_spell,
+            self.target_x,
+            self.target_y
+        )
+
+        self.state = GameState.PLAYING
+        self.target_spell = None
+
+        self.process_action(action)
+
+    def cancel_targeting(self):
+        self.state = GameState.PLAYING
+        self.target_spell = None
 
     def process_action(self, action):
-        t = action["type"]
+        if action:
+            action.perform(self)
 
-        if t == "move":
-            dx, dy = action["dx"], action["dy"]
-            x = self.player.x + dx
-            y = self.player.y + dy
+    def toggle_spell_menu(self):
+        if self.state == GameState.PLAYING:
+            self.state = GameState.SPELL_MENU
+        else:
+            self.state = GameState.PLAYING
 
-            target = self.get_blocking_entity(x, y)
-            if target and target.fighter:
-                self.attack(self.player, target)
-            else:
-                self.player.move(dx, dy)
+    def handle_input(self):
+        for event in tcod.event.wait():
+            action = handle_event(event)
 
-        elif t == "start_targeting":
-            self.targeting = True
-            self.target_spell = self.spells[action["spell"]]
+            if action and self.state == GameState.PLAYER_TURN:
+                self.process_player_action(action)
 
-        elif t == "mouse_move" and self.targeting:
-            if action["x"] is not None and action["y"] is not None:
-                self.mouse_position = (int(action["x"]), int(action["y"]))
+            if action and action.get("exit"):
+                self.running = False
 
-        elif t == "mouse_click" and self.targeting:
-            x, y = action["x"], action["y"]
-            self.target_spell.cast(self, self.player, x, y)
-            self.targeting = False
-            self.target_spell = None
+    def process_player_action(self, action):
+        dx = action.get("dx", 0)
+        dy = action.get("dy", 0)
 
-        elif t == "cancel_targeting":
-            self.targeting = False
-            self.target_spell = None
+        if dx or dy:
+            self.player.move(dx, dy, self.game_map)
+            self.state = GameState.ENEMY_TURN
 
-        elif t == "exit":
-            raise SystemExit()
+    def enemy_turn(self):
+        for entity in self.entities:
+            if entity is not self.player and hasattr(entity, "ai"):
+                entity.ai.take_turn(self.player, self.game_map)
 
-    def get_blocking_entity(self, x, y):
-        for e in self.entities:
-            if e.blocks and e.x == x and e.y == y:
-                return e
-        return None
+        self.state = GameState.PLAYER_TURN
 
-    def attack(self, attacker, defender):
-        dead = defender.fighter.take_damage(attacker.fighter.power)
-        if dead:
-            self.entities.remove(defender)
+    def update(self):
+        if self.state == GameState.ENEMY_TURN:
+            self.enemy_turn()
 
     def render(self):
         self.console.clear()
 
-        for e in self.entities:
-            self.console.print(e.x, e.y, e.glyph, fg=e.color)
+        self.game_map.render(self.console)
 
-        if self.targeting:
-            mx, my = self.mouse_position
+        for entity in self.entities:
+            entity.draw(self.console)
 
-            if mx is not None and my is not None:
-                path = tcod.los.bresenham(
-                    (self.player.x, self.player.y),
-                    (mx, my)
-                ).tolist()
-                for x, y in path:
-                    self.console.print(x, y, "*", fg=(0, 255, 255))
-        
-        for p in self.projectiles:
-            self.console.print(p.x, p.y, p.glyph, fg=p.color)
+        if self.state == GameState.TARGETING:
+            self.console.print(
+                self.target_x,
+                self.target_y,
+                "X",
+                fg=(255, 0, 0)
+            )
 
-        self.context.present(self.console)
+    def render_spell_menu(self):
+        x = 2
+        y = 2
 
-    def get_line(self, x1, y1, x2, y2):
-        return tcod.los.bresenham((x1, y1), (x2, y2)).tolist()
-    
-    def update(self):
-        for p in self.projectiles[:]:
-            p.update()
+        self.console.print(x, y, "=== SPELLS ===", fg=(255, 255, 0))
+        y += 2
 
-            x, y = p.x, p.y
+        for spell in self.player.spellbook.known_spells:
+            self.console.print(x, y, f"- {spell}")
+            y += 1
 
-            target = self.get_blocking_entity(x, y)
-            if target and target.fighter:
-                dead = target.fighter.take_damage(p.damage)
-                if dead:
-                    if target in self.entities:
-                        self.entities.remove(target)
-                if p in self.projectiles:
-                    self.projectiles.remove(p)
-                continue
+        y += 1
+        self.console.print(x, y, "Slots:")
+        y += 1
 
-            if p.finished():
-                if p in self.projectiles:
-                    self.projectiles.remove(p)
+        for slot, spell in self.player.spellbook.slots.items():
+            self.console.print(x, y, f"{slot}: {spell}")
+            y += 1
+
+    def run(self):
+        while self.running:
+            self.handle_input()
+            self.update()
+            self.render()

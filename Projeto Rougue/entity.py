@@ -1,19 +1,30 @@
+from components.spells import Spellbook
+
+
 class Entity:
-    def __init__(self, x, y, glyph, color, name, blocks=False, fighter=None):
+    def __init__(self, x, y, char, color, is_player=False):
         self.x = x
         self.y = y
-        self.glyph = glyph
+        self.char = char
         self.color = color
-        self.name = name
-        self.blocks = blocks
-        self.fighter = fighter
 
-        if self.fighter:
-            self.fighter.owner = self
+        self.hp = 10
+        self.mana = 10
 
-    def move(self, dx, dy):
-        self.x += dx
-        self.y += dy
+        self.is_player = is_player
+        self.spellbook = Spellbook() if is_player else None
+
+    def move(self, dx, dy, game_map):
+        nx = self.x + dx
+        ny = self.y + dy
+
+        if not game_map.is_blocked(nx, ny):
+            self.x = nx
+            self.y = ny
+
+    def draw(self, console):
+        console.print(self.x, self.y, self.char, fg=self.color)
+
 
 class Projectile:
     def __init__(self, path, damage, glyph="*", color=(255, 255, 0)):
