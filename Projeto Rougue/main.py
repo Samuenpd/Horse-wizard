@@ -1,53 +1,57 @@
 import tcod
 
 from engine import Engine
-from input_handlers import EventHandler
-from map_game import GameMap
 from entity import Entity
-from components.spells import default_spell_library
-
+from map_game import GameMap
+from components.spells import SpellLibrary, Firebolt, Heal
+from components.spells import Spellbook, SpellLibrary
 
 def main():
     screen_width = 80
     screen_height = 50
 
-    tileset = tcod.tileset.load_tilesheet(
-        "assets/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
-    )
-
     with tcod.context.new_terminal(
-        screen_width,
-        screen_height,
-        tileset=tileset,
+        columns=screen_width,
+        rows=screen_height,
+        tileset=tcod.tileset.load_tilesheet(
+            "assets/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
+        ),
         title="Projeto Rogue",
         vsync=True,
     ) as context:
-        console = tcod.Console(screen_width, screen_height)
+
+        console = tcod.console.Console(screen_width, screen_height)
 
         game_map = GameMap(screen_width, screen_height)
 
-        player = Entity(40, 25, "@", (255, 255, 255), is_player=True)
-        entities = [player]
+        spell_library = SpellLibrary()
+        spell_library.register(Firebolt())
+        spell_library.register(Heal())
 
-        spell_library = default_spell_library()
+        player = Entity(
+            x=screen_width // 2,
+            y=screen_height // 2,
+            glyph="@",
+            color=(255, 255, 255),
+        )
+
+        player.spellbook = Spellbook()
+
+        player.spellbook.learn(spell_library.spells["firebolt"])
+        player.spellbook.learn(spell_library.spells["heal"])
+
+        player.spellbook.set_active("firebolt")
+
+        entities = [player]
 
         engine = Engine(
             entities=entities,
             game_map=game_map,
+            player=player,
             context=context,
             console=console,
-            spell_library=spell_library,
         )
-
-        event_handler = EventHandler(engine)
-
-        while True:
-            console.clear()
-            engine.render()
-            context.present(console)
-
-            for event in tcod.event.wait():
-                event_handler.dispatch(event)
+        engine.run()
 
 
 if __name__ == "__main__":

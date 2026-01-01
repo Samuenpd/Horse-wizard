@@ -2,17 +2,17 @@ from components.spells import Spellbook
 
 
 class Entity:
-    def __init__(self, x, y, char, color, is_player=False):
+    def __init__(self, x, y, glyph, color, is_player=False):
         self.x = x
         self.y = y
-        self.char = char
+        self.glyph = glyph
         self.color = color
 
         self.hp = 10
-        self.mana = 10
+        self.mana = 100
 
         self.is_player = is_player
-        self.spellbook = Spellbook() if is_player else None
+        self.spellbook = Spellbook()
 
     def move(self, dx, dy, game_map):
         nx = self.x + dx
@@ -23,8 +23,7 @@ class Entity:
             self.y = ny
 
     def draw(self, console):
-        console.print(self.x, self.y, self.char, fg=self.color)
-
+        console.print(self.x, self.y, self.glyph, fg=self.color)
 
 class Projectile:
     def __init__(self, path, damage, glyph="*", color=(255, 255, 0)):

@@ -1,75 +1,41 @@
+import tcod
 import tcod.event
-from tcod.event import KeySym
-from engine import GameState
 
 
-MOVE_KEYS = {
-    # WASD
-    KeySym.W: (0, -1),
-    KeySym.S: (0, 1),
-    KeySym.A: (-1, 0),
-    KeySym.D: (1, 0),
+def handle_playing(event):
+	if not isinstance(event, tcod.event.KeyDown):
+		return None
 
-    # Setas
-    KeySym.UP: (0, -1),
-    KeySym.DOWN: (0, 1),
-    KeySym.LEFT: (-1, 0),
-    KeySym.RIGHT: (1, 0),
-}
+	key = event.sym
+
+	if key == tcod.event.KeySym.UP or key == tcod.event.KeySym.W:
+		return ("move", 0, -1)
+	elif key == tcod.event.KeySym.DOWN or key == tcod.event.KeySym.S:
+		return ("move", 0, 1)
+	elif key == tcod.event.KeySym.LEFT or key == tcod.event.KeySym.A:
+		return ("move", -1, 0)
+	elif key == tcod.event.KeySym.RIGHT or key == tcod.event.KeySym.D:
+		return ("move", 1, 0)
+
+	elif key == tcod.event.KeySym.M:
+		return ("target",)
+
+	elif key == tcod.event.KeySym.ESCAPE:
+		return ("quit",)
+
+	return None
 
 
-class EventHandler(tcod.event.EventDispatch):
-    def __init__(self, engine):
-        self.engine = engine
+def handle_targeting(event):
+	if isinstance(event, tcod.event.MouseMotion):
+		return ("aim", int(event.tile.x), int(event.tile.y))
 
-    # ======================
-    # INPUT NORMAL (JOGO)
-    # ======================
-    def ev_keydown(self, event):
-        key = event.sym
+	elif isinstance(event, tcod.event.MouseButtonDown):
+		if event.button == 1:
+			return ("cast",)
 
-        # ---------- TARGETING ----------
-        if self.engine.state == GameState.TARGETING:
-            return self.handle_targeting_input(key)
+	elif isinstance(event, tcod.event.KeyDown):
+		if event.sym == tcod.event.KeySym.ESCAPE:
+			return ("cancel",)
 
-        # ---------- MOVIMENTO ----------
-        if key in MOVE_KEYS:
-            dx, dy = MOVE_KEYS[key]
-            self.engine.player.move(dx, dy, self.engine.game_map)
-            return None
-
-        # ---------- MENU DE MAGIAS ----------
-        if key == KeySym.M:
-            self.engine.toggle_spell_menu()
-            return None
-
-        # ---------- SELEÇÃO DE MAGIA (1–9) ----------
-        if KeySym.N1 <= key <= KeySym.N9:
-            slot = key - KeySym.N0
-            spell = self.engine.player.spellbook.slots.get(slot)
-
-            if spell:
-                self.engine.start_targeting(spell)
-
-        return None
-
-    # ======================
-    # INPUT DE MIRA
-    # ======================
-    def handle_targeting_input(self, key):
-        cursor = self.engine.target_cursor
-
-        if key in MOVE_KEYS:
-            dx, dy = MOVE_KEYS[key]
-            cursor.move(dx, dy)
-            return None
-
-        if key == KeySym.RETURN:
-            self.engine.confirm_target()
-            return None
-
-        if key == KeySym.ESCAPE:
-            self.engine.cancel_targeting()
-            return None
-
-        return None
+	return None
