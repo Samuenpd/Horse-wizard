@@ -9,6 +9,7 @@ class Entity:
         self.color = color
         self.is_player = is_player
 
+
         # combate
         self.fighter = Fighter(
             hp=10,
@@ -16,7 +17,12 @@ class Entity:
         )
 
         # magia só pro jogador
-        self.spellbook = Spellbook(self) if is_player else None
+        if is_player:
+            self.mana = 10
+            self.max_mana = 10
+            self.spellbook = Spellbook(self)
+        else:
+            self.spellbook = None
 
     def move(self, dx, dy, game_map, entities):
         new_x = self.x + dx

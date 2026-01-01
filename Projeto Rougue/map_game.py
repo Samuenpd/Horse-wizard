@@ -29,23 +29,16 @@ class GameMap:
 
 		return not self.tiles[x][y].walkable
 
-	def render(self, console):
+	def render(self, console, offset_x=0):
 		for y in range(self.height):
 			for x in range(self.width):
-				if self.tiles[x][y].walkable:
-					console.print(
-						x=x,
-						y=y,
-						string="",
-						fg=(40, 40, 40)
-					)
-				else:
-					console.print(
-						x=x,
-						y=y,
-						string="#",
-						fg=(120, 120, 120)
-					)
+				char = "#" if not self.tiles[x][y].walkable else ""
+				console.print(
+    	            x + offset_x,
+        	        y,
+            	    char,
+                	fg=(120, 120, 120),
+        	    )
 
 	def in_bounds(self, x: int, y: int) -> bool:
 		return 0 <= x < self.width and 0 <= y < self.height

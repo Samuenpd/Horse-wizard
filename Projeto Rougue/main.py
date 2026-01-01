@@ -3,14 +3,12 @@ import tcod
 from engine import Engine
 from entity import Entity
 from map_game import GameMap
-from components.spells import SpellLibrary, Firebolt, Heal
-from components.spells import Spellbook, SpellLibrary
+from components.spells import Spellbook, Firebolt, Heal
 from enemies import create_goblin
 
 
-
 def main():
-    screen_width = 80
+    screen_width = 100
     screen_height = 50
 
     with tcod.context.new_terminal(
@@ -25,11 +23,11 @@ def main():
 
         console = tcod.console.Console(screen_width, screen_height)
 
-        game_map = GameMap(screen_width, screen_height)
+        UI_WIDTH = 20
+        MAP_WIDTH = screen_width - UI_WIDTH
+        MAP_HEIGHT = screen_height
 
-        spell_library = SpellLibrary()
-        spell_library.register(Firebolt())
-        spell_library.register(Heal())
+        game_map = GameMap(MAP_WIDTH, MAP_HEIGHT)
 
         player = Entity(
             x=screen_width // 2,
@@ -39,7 +37,6 @@ def main():
         )
 
         player.spellbook = Spellbook(player)
-
         player.spellbook.learn(Firebolt())
         player.spellbook.learn(Heal())
 

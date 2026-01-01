@@ -1,10 +1,13 @@
 import tcod
 import tcod.event
 from enum import Enum, auto
-import ai
-import entity
-from input_handlers import handle_event
 
+import ai
+from input_handlers import handle_event
+from ui import UIPanel
+
+
+MAP_OFFSET_X = 20
 
 class GameState(Enum):
     PLAYING = auto()
@@ -33,7 +36,14 @@ class Engine:
 
         self.target_x = player.x
         self.target_y = player.y
+
         self.projectiles = []
+
+        self.ui_panel = UIPanel(
+            x=0,
+            width=MAP_OFFSET_X,
+            height=console.height,
+        )
 
     # ================= MAIN LOOP =================
 
@@ -49,25 +59,27 @@ class Engine:
                     return
 
                 action = handle_event(event)
-
                 if action:
                     self.process_action(action)
 
-        # Update dos projetils
+            # ===== UPDATE DOS PROJÉTEIS =====
             for projectile in self.projectiles[:]:
                 projectile.update()
+
                 px, py = projectile.x, projectile.y
-
                 hit_entity = None
+
                 for entity in self.entities:
+                    if entity is self.player:
+                        continue
+
                     if entity.x == px and entity.y == py and hasattr(entity, "fighter"):
-                        if entity.fighter:
-                            entity.fighter.take_damage(projectile.damage)
+                        entity.fighter.take_damage(projectile.damage)
 
-                            if entity.fighter.hp <= 0:
-                                hit_entity = entity
+                        if entity.fighter.hp <= 0:
+                            hit_entity = entity
 
-                            break  
+                        break  # projétil para no primeiro alvo
 
                 if hit_entity:
                     self.entities.remove(hit_entity)
@@ -75,7 +87,7 @@ class Engine:
                 if hit_entity or projectile.finished():
                     self.projectiles.remove(projectile)
 
-# ================= ACTIONS =================
+    # ================= ACTIONS =================
 
     def process_action(self, action):
         match action["type"]:
@@ -95,13 +107,11 @@ class Engine:
                     if not hasattr(entity, "fighter"):
                         continue
 
-                    # inimigo com delay
+                    # delay opcional
                     if hasattr(entity, "turn_delay"):
                         entity.turn_counter += 1
-
                         if entity.turn_counter < entity.turn_delay:
                             continue
-
                         entity.turn_counter = 0
 
                     ai.move_towards(
@@ -112,7 +122,7 @@ class Engine:
                         self.entities,
                     )
 
-                # remove mortos
+                # remove mortos restantes
                 for entity in self.entities[:]:
                     if hasattr(entity, "fighter") and entity.fighter.hp <= 0:
                         self.entities.remove(entity)
@@ -123,9 +133,10 @@ class Engine:
 
             case "select_spell":
                 if self.state != GameState.SPELL_MENU:
-                    return  # ignora se não estiver no menu
+                    return
 
                 spell = self.player.spellbook.select(action["spell_id"])
+
                 if spell and spell.requires_target:
                     self.state = GameState.TARGETING
                     self.target_x = self.player.x
@@ -139,7 +150,7 @@ class Engine:
                     return
 
                 self.player.spellbook.cast_active(
-                self,
+                    self,
                     int(self.target_x),
                     int(self.target_y),
                 )
@@ -151,8 +162,13 @@ class Engine:
 
             case "mouse_move":
                 if self.state == GameState.TARGETING:
-                    self.target_x = action["x"]
-                    self.target_y = action["y"]
+                    map_x = action["x"] - MAP_OFFSET_X
+                    map_y = action["y"]
+
+                    if self.game_map.in_bounds(map_x, map_y):
+                        self.target_x = map_x
+                        self.target_y = map_y
+
 
             case "quit":
                 self.running = False
@@ -161,37 +177,48 @@ class Engine:
 
     def render(self):
         self.console.clear()
-        self.game_map.render(self.console)
 
+        # ===== UI PANEL =====
+        self.ui_panel.render(
+            self.console,
+            self.player,
+            self.state,
+        )
+
+        # ===== MAPA =====
+        self.game_map.render(self.console, offset_x=MAP_OFFSET_X)
+
+        # ===== ENTIDADES =====
         for entity in self.entities:
             self.console.print(
-                entity.x,
+                entity.x + MAP_OFFSET_X,
                 entity.y,
                 entity.glyph,
                 fg=entity.color,
             )
 
-        # Render projectiles
+        # ===== PROJÉTEIS =====
         for projectile in self.projectiles:
             if projectile.x is None or projectile.y is None:
                 continue
 
             self.console.print(
-                projectile.x,
+                projectile.x + MAP_OFFSET_X,
                 projectile.y,
                 projectile.glyph,
                 fg=projectile.color,
             )
 
+        # ===== TARGETING =====
         if self.state == GameState.TARGETING:
-            if self.target_x is not None and self.target_y is not None:
-                self.console.print(
-                    int(self.target_x),
-                    int(self.target_y),
-                    "X",
-                    fg=(255, 0, 0),
-                )
+            self.console.print(
+                int(self.target_x) + MAP_OFFSET_X,
+                int(self.target_y),
+                "X",
+                fg=(255, 0, 0),
+            )
 
+        # ===== SPELL MENU =====
         if self.state == GameState.SPELL_MENU:
             self.render_spell_menu()
 
@@ -199,10 +226,10 @@ class Engine:
 
     def render_spell_menu(self):
         x, y = 2, 2
-
         for i, spell in enumerate(self.player.spellbook.known_list):
             self.console.print(
                 x,
                 y + i,
                 f"{i + 1} - {spell.name} ({spell.cost})",
+                fg=(255, 255, 255),
             )
