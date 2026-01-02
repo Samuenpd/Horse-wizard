@@ -17,7 +17,7 @@ def main():
         tileset=tcod.tileset.load_tilesheet(
             "assets/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
         ),
-        title="Projeto Rogue",
+        title="Wizard Horse",
         vsync=True,
     ) as context:
 

@@ -1,6 +1,6 @@
 import random
 
-def move_towards(entity, target_x, target_y, game_map, entities):
+def move_towards(entity, target_x, target_y, game_map, entities, engine):
     dx = 0
     dy = 0
 
@@ -14,14 +14,14 @@ def move_towards(entity, target_x, target_y, game_map, entities):
     elif target_y < entity.y:
         dy = -1
 
-    entity.move(dx, dy, game_map, entities)
+    entity.move(dx, dy, game_map, entities, engine)
 
 KNIGHT_MOVES = [
     (2, 1), (2, -1), (-2, 1), (-2, -1),
     (1, 2), (1, -2), (-1, 2), (-1, -2),
 ]
 
-def knight_move(entity, game_map, entities):
+def knight_move(entity, game_map, entities, engine):
     random.shuffle(KNIGHT_MOVES)
 
     for dx, dy in KNIGHT_MOVES:

@@ -75,10 +75,9 @@ class Heal(Spell):
         )
 
     def cast(self, caster, engine, x=None, y=None):
-        caster.fighter.hp = min(
-            caster.fighter.max_hp,
-            caster.fighter.hp + 5
-        )
+        # Usa o método heal do Fighter que já cria floating text
+        caster.fighter.heal(5, engine)
+
 
 class SpellLibrary:
     def __init__(self):
@@ -121,5 +120,6 @@ class Spellbook:
         if not self.active_spell:
             return
 
+        # A verificação de mana já foi feita no action_processor
         self.active_spell.cast(self.owner, engine, x, y)
         self.active_spell = None

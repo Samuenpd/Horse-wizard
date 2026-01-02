@@ -4,7 +4,7 @@ class UIPanel:
         self.width = width
         self.height = height
 
-    def render(self, console, player, engine):
+    def render(self, console, player, engine):  # ✅ Alterado de engine para engine
         console.draw_frame(
             x=self.x,
             y=0,

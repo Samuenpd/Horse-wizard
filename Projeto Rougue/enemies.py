@@ -13,6 +13,7 @@ def create_goblin(x: int, y: int) -> Entity:
     )
 
     goblin.fighter = fighter
+    fighter.entity = goblin 
 
     # controle de turnos
     goblin.turn_delay = 2
@@ -31,6 +32,8 @@ def create_cavalo(x: int, y: int) -> Entity:
     )
 
     cavalo.fighter = fighter
+    fighter.entity = cavalo  
+    
     # controle de turnos
     cavalo.turn_delay = 1
     cavalo.turn_counter = 0
