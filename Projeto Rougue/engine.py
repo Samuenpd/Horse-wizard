@@ -114,13 +114,13 @@ class Engine:
                             continue
                         entity.turn_counter = 0
 
-                    ai.move_towards(
-                        entity,
-                        self.player.x,
-                        self.player.y,
-                        self.game_map,
-                        self.entities,
-                    )
+                        ai.move_towards(
+                            entity,
+                            self.player.x,
+                            self.player.y,
+                            self.game_map,
+                            self.entities,
+                        )
 
                 # remove mortos restantes
                 for entity in self.entities[:]:

@@ -4,7 +4,7 @@ from engine import Engine
 from entity import Entity
 from map_game import GameMap
 from components.spells import Spellbook, Firebolt, Heal
-from enemies import create_goblin
+from enemies import create_goblin, create_cavalo
 
 
 def main():
@@ -42,8 +42,9 @@ def main():
         player.spellbook.learn(Heal())
 
         goblin = create_goblin(10, 10)
+        cavalo = create_cavalo(15, 15)
 
-        entities = [player, goblin]
+        entities = [player, goblin, cavalo]
 
         engine = Engine(
             entities=entities,
