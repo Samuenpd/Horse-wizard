@@ -4,7 +4,7 @@ from engine import Engine
 from entity import Entity
 from map_game import GameMap
 from components.spells import Spellbook, Firebolt, Heal
-from enemies import create_goblin, create_cavalo
+from enemy_generator import EnemyGenerator  # Adicionar esta linha
 
 
 def main():
@@ -41,10 +41,19 @@ def main():
         player.spellbook.learn(Firebolt())
         player.spellbook.learn(Heal())
 
-        goblin = create_goblin(10, 10)
-        cavalo = create_cavalo(15, 15)
-
-        entities = [player, goblin, cavalo]
+        entities = [player]
+        
+        # Criar gerador e spawnar inimigos iniciais (opcional)
+        generator = EnemyGenerator(game_map)
+        # Spawnar alguns inimigos extras
+        for _ in range(2):
+            enemy = generator.spawn_random_enemy(
+                player.x,
+                player.y,
+                entities
+            )
+            if enemy:
+                entities.append(enemy)
 
         engine = Engine(
             entities=entities,

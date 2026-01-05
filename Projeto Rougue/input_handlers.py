@@ -27,6 +27,14 @@ def handle_event(event):
                 "spell_id": key - tcod.event.KeySym.N1
             }
 
+        # Tecla 'N' para spawnar inimigos (teste)
+        if key == tcod.event.KeySym.N:
+            return {"type": "spawn_enemies"}
+
+        # Tecla 'M' para spawnar onda próxima (teste)
+        if key == tcod.event.KeySym.M:
+            return {"type": "spawn_near"}
+
     if isinstance(event, tcod.event.MouseMotion):
         if event.tile is not None:
             return {

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mapas - Wizard Horse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #e6e6e6;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0f3460;
+        }
+        
+        h1 {
+            color: #4cc9f0;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #a9a9a9;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .editor-section {
+            flex: 1;
+            min-width: 300px;
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .controls-section {
+            flex: 0 0 300px;
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        h2 {
+            color: #4cc9f0;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        h3 {
+            color: #a9a9a9;
+            margin: 15px 0 10px 0;
+            font-size: 1.1em;
+        }
+        
+        .map-grid {
+            display: grid;
+            gap: 1px;
+            background: #0f3460;
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .cell {
+            width: 25px;
+            height: 25px;
+            background: #1a1a2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        
+        .cell:hover {
+            transform: scale(1.1);
+            z-index: 1;
+        }
+        
+        .cell.wall {
+            background: #555;
+            color: #ddd;
+        }
+        
+        .cell.floor {
+            background: #2d3047;
+            color: #888;
+        }
+        
+        .cell.player {
+            background: #4cc9f0;
+            color: white;
+        }
+        
+        .cell.goblin {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .cell.cavalo {
+            background: #8B4513;
+            color: white;
+        }
+        
+        .cell.mago {
+            background: #9C27B0;
+            color: white;
+        }
+        
+        .cell.obstacle {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tool-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        .tool-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .tool-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-wall { background: #555; color: white; }
+        .btn-floor { background: #2d3047; color: #888; }
+        .btn-player { background: #4cc9f0; color: white; }
+        .btn-goblin { background: #4CAF50; color: white; }
+        .btn-cavalo { background: #8B4513; color: white; }
+        .btn-mago { background: #9C27B0; color: white; }
+        .btn-obstacle { background: #FF9800; color: white; }
+        .btn-erase { background: #f44336; color: white; }
+        
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            background: #0f3460;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        .control-btn:hover {
+            background: #4cc9f0;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.save {
+            background: #4CAF50;
+        }
+        
+        .control-btn.load {
+            background: #2196F3;
+        }
+        
+        .control-btn.clear {
+            background: #f44336;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #1a1a2e;
+            color: #e6e6e6;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            resize: vertical;
+            margin-top: 10px;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #0f3460;
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .controls-section {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Editor de Mapas - Wizard Horse</h1>
+            <p class="subtitle">Crie mapas personalizados para seu jogo roguelike</p>
+        </header>
+        
+        <div class="main-content">
+            <section class="editor-section">
+                <h2>Editor de Mapa</h2>
+                <div id="map-container">
+                    <!-- Grid será gerado por JavaScript -->
+                </div>
+                
+                <div class="map-controls">
+                    <button class="control-btn clear" onclick="clearMap()">🗑️ Limpar Tudo</button>
+                    <button class="control-btn" onclick="resizeMap()">📐 Redimensionar</button>
+                </div>
+            </section>
+            
+            <section class="controls-section">
+                <h2>Ferramentas</h2>
+                
+                <div class="tools">
+                    <button class="tool-btn btn-floor active" onclick="selectTool('floor')">.</button>
+                    <button class="tool-btn btn-wall" onclick="selectTool('wall')">#</button>
+                    <button class="tool-btn btn-player" onclick="selectTool('player')">@</button>
+                    <button class="tool-btn btn-goblin" onclick="selectTool('goblin')">g</button>
+                    <button class="tool-btn btn-cavalo" onclick="selectTool('cavalo')">c</button>
+                    <button class="tool-btn btn-mago" onclick="selectTool('mago')">m</button>
+                    <button class="tool-btn btn-obstacle" onclick="selectTool('obstacle')">O</button>
+                    <button class="tool-btn btn-erase" onclick="selectTool('erase')">✕</button>
+                </div>
+                
+                <h3>Instruções</h3>
+                <div class="info-panel">
+                    <p><strong>Clique:</strong> Coloca o elemento selecionado</p>
+                    <p><strong>Arraste:</strong> Pinta múltiplas células</p>
+                    <p><strong>Tecla Delete:</strong> Apaga célula</p>
+                    <p><strong>Apenas 1 jogador (@) por mapa!</strong></p>
+                </div>
+                
+                <h3>Legenda</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2d3047;"></div>
+                        <span>Chão (.)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #555;"></div>
+                        <span>Parede (#)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4cc9f0;"></div>
+                        <span>Jogador (@)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4CAF50;"></div>
+                        <span>Goblin (g)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8B4513;"></div>
+                        <span>Cavalo (c)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9C27B0;"></div>
+                        <span>Mago (m)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF9800;"></div>
+                        <span>Obstáculo (O)</span>
+                    </div>
+                </div>
+                
+                <h3>Exportar/Importar</h3>
+                <textarea id="json-output" readonly placeholder="O JSON do seu mapa aparecerá aqui..."></textarea>
+                
+                <div class="map-controls">
+                    <button class="control-btn save" onclick="exportMap()">💾 Exportar JSON</button>
+                    <button class="control-btn load" onclick="importMap()">📂 Importar JSON</button>
+                    <button class="control-btn" onclick="copyToClipboard()">📋 Copiar</button>
+                </div>
+            </section>
+        </div>
+        
+        <footer>
+            <p>Wizard Horse Map Editor v1.0 • Use o JSON gerado no seu jogo Python</p>
+            <p>Dica: Salve o JSON como "meu_mapa.json" na pasta do jogo</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configurações do mapa
+        let mapWidth = 30;
+        let mapHeight = 20;
+        let currentTool = 'floor';
+        let isMouseDown = false;
+        let mapData = [];
+        
+        // Inicializa o mapa
+        function initMap() {
+            const container = document.getElementById('map-container');
+            
+            // Cria grid CSS
+            container.innerHTML = '';
+            container.className = 'map-grid';
+            container.style.gridTemplateColumns = `repeat(${mapWidth}, 25px)`;
+            container.style.gridTemplateRows = `repeat(${mapHeight}, 25px)`;
+            
+            // Inicializa dados do mapa
+            mapData = [];
+            for (let y = 0; y < mapHeight; y++) {
+                mapData[y] = [];
+                for (let x = 0; x < mapWidth; x++) {
+                    mapData[y][x] = 'floor'; // Começa com chão
+                    
+                    // Cria célula
+                    const cell = document.createElement('div');
+                    cell.className = 'cell floor';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.textContent = '.';
+                    
+                    // Eventos
+                    cell.addEventListener('mousedown', (e) => {
+                        isMouseDown = true;
+                        placeTile(x, y);
+                        e.preventDefault();
+                    });
+                    
+                    cell.addEventListener('mouseover', () => {
+                        if (isMouseDown) {
+                            placeTile(x, y);
+                        }
+                    });
+                    
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        selectTool('erase');
+                        placeTile(x, y);
+                    });
+                    
+                    container.appendChild(cell);
+                }
+            }
+            
+            // Bordas automáticas
+            for (let x = 0; x < mapWidth; x++) {
+                placeTile(x, 0, 'wall', true);
+                placeTile(x, mapHeight - 1, 'wall', true);
+            }
+            for (let y = 0; y < mapHeight; y++) {
+                placeTile(0, y, 'wall', true);
+                placeTile(mapWidth - 1, y, 'wall', true);
+            }
+            
+            // Jogador no centro
+            placeTile(Math.floor(mapWidth / 2), Math.floor(mapHeight / 2), 'player', true);
+            
+            updateJSON();
+        }
+        
+        // Seleciona ferramenta
+        function selectTool(tool) {
+            currentTool = tool;
+            
+            // Atualiza botões ativos
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const activeBtn = document.querySelector(`.btn-${tool}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+        }
+        
+        // Coloca tile
+        function placeTile(x, y, tool = null, force = false) {
+            tool = tool || currentTool;
+            
+            // Regras especiais
+            if (tool === 'player') {
+                // Remove jogador anterior
+                for (let yy = 0; yy < mapHeight; yy++) {
+                    for (let xx = 0; xx < mapWidth; xx++) {
+                        if (mapData[yy][xx] === 'player') {
+                            mapData[yy][xx] = 'floor';
+                            updateCell(xx, yy);
+                        }
+                    }
+                }
+            }
+            
+            if (tool === 'erase') {
+                mapData[y][x] = 'floor';
+            } else {
+                mapData[y][x] = tool;
+            }
+            
+            updateCell(x, y);
+            updateJSON();
+        }
+        
+        // Atualiza visual da célula
+        function updateCell(x, y) {
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            if (!cell) return;
+            
+            const type = mapData[y][x];
+            cell.className = `cell ${type}`;
+            
+            // Texto da célula
+            const texts = {
+                'floor': '.',
+                'wall': '#',
+                'player': '@',
+                'goblin': 'g',
+                'cavalo': 'c',
+                'mago': 'm',
+                'obstacle': 'O'
+            };
+            
+            cell.textContent = texts[type] || '.';
+        }
+        
+        // Limpa mapa
+        function clearMap() {
+            if (confirm('Tem certeza? Isso apagará todo o mapa.')) {
+                initMap();
+            }
+        }
+        
+        // Redimensiona mapa
+        function resizeMap() {
+            const newWidth = parseInt(prompt('Largura do mapa?', mapWidth));
+            const newHeight = parseInt(prompt('Altura do mapa?', mapHeight));
+            
+            if (newWidth && newHeight && newWidth > 5 && newHeight > 5) {
+                mapWidth = newWidth;
+                mapHeight = newHeight;
+                initMap();
+            }
+        }
+        
+        // Exporta para JSON
+        function exportMap() {
+            const walls = [];
+            const enemies = [];
+            let playerStart = [0, 0];
+            
+            // Coleta dados
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    const type = mapData[y][x];
+                    
+                    switch(type) {
+                        case 'wall':
+                            walls.push([x, y]);
+                            break;
+                        case 'player':
+                            playerStart = [x, y];
+                            break;
+                        case 'goblin':
+                            enemies.push({type: 'goblin', x: x, y: y});
+                            break;
+                        case 'cavalo':
+                            enemies.push({type: 'cavalo', x: x, y: y});
+                            break;
+                        case 'mago':
+                            enemies.push({type: 'mago', x: x, y: y});
+                            break;
+                        case 'obstacle':
+                            walls.push([x, y]); // Obstáculos são paredes
+                            break;
+                    }
+                }
+            }
+            
+            // Cria objeto JSON
+            const mapObject = {
+                width: mapWidth,
+                height: mapHeight,
+                default_walkable: false, // Nosso mapa é parede por padrão
+                player_start: playerStart,
+                walls: walls,
+                enemies: enemies
+            };
+            
+            const jsonOutput = document.getElementById('json-output');
+            jsonOutput.value = JSON.stringify(mapObject, null, 2);
+            
+            // Rolagem automática
+            jsonOutput.scrollTop = 0;
+            
+            alert('Mapa exportado! Copie o JSON acima.');
+        }
+        
+        // Importa de JSON
+        function importMap() {
+            const jsonInput = prompt('Cole o JSON do mapa:');
+            
+            if (!jsonInput) return;
+            
+            try {
+                const data = JSON.parse(jsonInput);
+                
+                // Atualiza dimensões
+                mapWidth = data.width || mapWidth;
+                mapHeight = data.height || mapHeight;
+                
+                // Limpa mapa
+                initMap();
+                
+                // Aplica paredes
+                data.walls?.forEach(wall => {
+                    const [x, y] = wall;
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                        placeTile(x, y, 'wall', true);
+                    }
+                });
+                
+                // Aplica inimigos
+                data.enemies?.forEach(enemy => {
+                    const {type, x, y} = enemy;
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                        placeTile(x, y, type, true);
+                    }
+                });
+                
+                // Aplica jogador
+                if (data.player_start) {
+                    const [x, y] = data.player_start;
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                        placeTile(x, y, 'player', true);
+                    }
+                }
+                
+                updateJSON();
+                alert('Mapa importado com sucesso!');
+                
+            } catch (error) {
+                alert('Erro ao importar JSON: ' + error.message);
+            }
+        }
+        
+        // Atualiza visualização JSON
+        function updateJSON() {
+            // Atualiza em tempo real (opcional)
+            // exportMap();
+        }
+        
+        // Copia para clipboard
+        function copyToClipboard() {
+            const jsonOutput = document.getElementById('json-output');
+            
+            if (!jsonOutput.value) {
+                alert('Exporte o mapa primeiro!');
+                return;
+            }
+            
+            jsonOutput.select();
+            jsonOutput.setSelectionRange(0, 99999);
+            
+            try {
+                navigator.clipboard.writeText(jsonOutput.value);
+                alert('JSON copiado para a área de transferência!');
+            } catch (err) {
+                alert('Erro ao copiar: ' + err);
+            }
+        }
+        
+        // Eventos globais
+        document.addEventListener('mousedown', () => {
+            isMouseDown = true;
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            // Atalhos de teclado
+            switch(e.key) {
+                case '1': selectTool('floor'); break;
+                case '2': selectTool('wall'); break;
+                case '3': selectTool('player'); break;
+                case '4': selectTool('goblin'); break;
+                case '5': selectTool('cavalo'); break;
+                case '6': selectTool('mago'); break;
+                case '7': selectTool('obstacle'); break;
+                case 'Delete':
+                case 'Backspace':
+                    selectTool('erase');
+                    break;
+                case 'e':
+                    if (e.ctrlKey) exportMap();
+                    break;
+                case 'i':
+                    if (e.ctrlKey) importMap();
+                    break;
+            }
+        });
+        
+        // Inicializa
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>

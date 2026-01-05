@@ -1,10 +1,12 @@
 import ai
+from enemy_generator import EnemyGenerator
 
 
 class ActionProcessor:
     def __init__(self, engine):
         self.engine = engine
-
+        self.enemy_generator = EnemyGenerator(engine.game_map)
+    
     def process(self, action):
         match action["type"]:
 
@@ -25,6 +27,12 @@ class ActionProcessor:
 
             case "quit":
                 self._process_quit()
+            
+            case "spawn_enemies":
+                self._process_spawn_enemies()
+            
+            case "spawn_near":
+                self._process_spawn_near()
 
     def _end_player_turn(self):
         """Chamado após jogador realizar uma ação que custa turno"""
@@ -32,7 +40,7 @@ class ActionProcessor:
         self._remove_dead_entities()
 
     def _process_move(self, action):
-        # Movimento do jogador
+        # Movimento do jogador (usa o move normal que ataca)
         self.engine.player.move(
             action["dx"],
             action["dy"],
@@ -50,22 +58,51 @@ class ActionProcessor:
                 continue
             if not hasattr(entity, "fighter"):
                 continue
-
             # Delay opcional
             if hasattr(entity, "turn_delay"):
                 entity.turn_counter += 1
                 if entity.turn_counter < entity.turn_delay:
                     continue
                 entity.turn_counter = 0
-
-            ai.move_towards(
-                entity,
-                self.engine.player.x,
-                self.engine.player.y,
-                self.engine.game_map,
-                self.engine.entities,
-                self.engine,
-            )
+            # Guarda a cor original antes da ação
+            original_color = entity.color
+        
+            # Comportamento baseado no tipo de inimigo
+            if hasattr(entity, "glyph"):
+                if entity.glyph == "c":
+                    # Cavalo
+                    ai.knight_move_towards(
+                        entity,
+                        self.engine.player.x,
+                        self.engine.player.y,
+                        self.engine.game_map,
+                        self.engine.entities,
+                        self.engine,
+                    )
+                elif entity.glyph == "m":
+                    # Mago
+                    ai.mago_behavior(
+                        entity,
+                        self.engine.player.x,
+                        self.engine.player.y,
+                        self.engine.game_map,
+                        self.engine.entities,
+                        self.engine,
+                    )
+                
+                    # Se o mago está no segundo turno de cast, incrementa o contador
+                    if hasattr(entity, "is_casting") and entity.is_casting:
+                        entity.casting_turn += 1
+                else:
+                    # Outros inimigos (goblin, etc)
+                    ai.move_towards(
+                        entity,
+                        self.engine.player.x,
+                        self.engine.player.y,
+                        self.engine.game_map,
+                        self.engine.entities,
+                        self.engine,
+                    )
 
     def _remove_dead_entities(self):
         for entity in self.engine.entities[:]:
@@ -89,7 +126,6 @@ class ActionProcessor:
 
         # Verifica se tem mana suficiente
         if self.engine.player.mana < spell.cost:
-            # Poderia adicionar uma mensagem "Mana insuficiente!"
             return
 
         # Gasta mana e casta a magia
@@ -120,3 +156,22 @@ class ActionProcessor:
 
     def _process_quit(self):
         self.engine.running = False
+    
+    def _process_spawn_enemies(self):
+        """Spawna inimigos aleatórios (teste - tecla N)"""
+        spawned = self.enemy_generator.spawn_wave(
+            self.engine.player.x,
+            self.engine.player.y,
+            self.engine.entities,
+            wave_size=3
+        )
+        print(f"Spawnados {len(spawned)} inimigos!")
+    
+    def _process_spawn_near(self):
+        """Spawna inimigos próximos (teste - tecla M)"""
+        spawned = self.enemy_generator.spawn_near_player(
+            self.engine.player.x,
+            self.engine.player.y,
+            self.engine.entities,
+            radius=4
+        )

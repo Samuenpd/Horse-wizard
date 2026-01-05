@@ -1,4 +1,8 @@
 from typing import Dict
+import math
+
+
+from typing import Dict
 
 
 def bresenham_line(x0, y0, x1, y1):
@@ -24,7 +28,6 @@ def bresenham_line(x0, y0, x1, y1):
 
     return points
 
-
 class Spell:
     def __init__(
         self,
@@ -43,7 +46,6 @@ class Spell:
         raise NotImplementedError()
 
 
-
 class Firebolt(Spell):
     def __init__(self):
         super().__init__(
@@ -54,17 +56,21 @@ class Firebolt(Spell):
         )
 
     def cast(self, caster, engine, x, y):
-        from entity import Projectile
-        # Create projectile path from caster to target, skip caster tile
-        path = bresenham_line(caster.x, caster.y, x, y)
-        if len(path) <= 1:
-            return
-        path = path[1:]
-        projectile = Projectile(path, damage=5, glyph="*", color=(255, 100, 0))
+        from entity import DirectionalProjectile
+        # Cria projétil mais lento também para o jogador
+        projectile = DirectionalProjectile(
+            start_x=caster.x,
+            start_y=caster.y,
+            target_x=x,
+            target_y=y,
+            max_range=12,
+            damage=5,
+            glyph="*",
+            color=(255, 100, 0),
+            speed=0.8  # Um pouco mais rápido que do mago
+        )
         engine.projectiles.append(projectile)
-
-
-
+        
 class Heal(Spell):
     def __init__(self):
         super().__init__(

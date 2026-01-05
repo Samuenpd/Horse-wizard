@@ -24,12 +24,29 @@ class Renderer:
 
         # Entidades
         for entity in engine.entities:
-            self.console.print(
-                entity.x + MAP_OFFSET_X,
-                entity.y,
-                entity.glyph,
-                fg=entity.color,
-            )
+            # Se for mago castando, mostra amarelo
+            if hasattr(entity, "glyph") and entity.glyph == "m":
+                if hasattr(entity, "is_casting") and entity.is_casting:
+                    self.console.print(
+                        entity.x + MAP_OFFSET_X,
+                        entity.y,
+                        entity.glyph,
+                        fg=(255, 255, 0),  # Amarelo quando castando
+                    )
+                else:
+                    self.console.print(
+                        entity.x + MAP_OFFSET_X,
+                        entity.y,
+                        entity.glyph,
+                        fg=entity.color,
+                    )
+            else:
+                self.console.print(
+                    entity.x + MAP_OFFSET_X,
+                    entity.y,
+                    entity.glyph,
+                    fg=entity.color,
+                )
 
         # Textos flutuantes
         for ft in engine.floating_texts[:]:
